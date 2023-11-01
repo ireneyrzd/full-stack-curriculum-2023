@@ -4,13 +4,13 @@
 <head>
 	<title>Weather Complete</title>
 	<meta charset="UTF-8" />
-  <link rel="stylesheet" type="text/css" href="style.css">
+	<link rel="stylesheet" type="text/css" href="style.css">
 </head>
 
 <body>
 	<div id='main-container'>
 		<div id='weather-container'>
-		</div> 
+		</div>
 	</div>
 	<div id='side-container'>
 		<div>
@@ -22,86 +22,154 @@
 </body>
 
 <script>
-		// USE YOUR OWN API KEY
-		const apiKey = "9ac6bc2763956867e7f70e876c6c2f1b";
+	// USE YOUR OWN API KEY
+	const apiKey = "9ac6bc2763956867e7f70e876c6c2f1b";
 
-        // variable that stores the city that is chosen
-		let city;
-        // variable that stores the weather and forecast for the city
-		let weather;
-        // the variable that stores the air quality index for the city
-		let aqi;
+	// variable that stores the city that is chosen
+	let city;
+	// variable that stores the weather and forecast for the city
+	let weather;
+	// the variable that stores the air quality index for the city
+	let aqi;
 
-		// function that accepts that a number N and returns the name of the day and the date N days from now as a string
-		function formatDate(daysFromNow = 0) {
-			let output = ''
-			var date = new Date();
-			date.setDate(date.getDate() + daysFromNow);
-			output += date.toLocaleString('en-US', { weekday: 'long' }).toUpperCase()
-			output += ' ' + date.getDate()
-			return output
+	// function that accepts that a number N and returns the name of the day and the date N days from now as a string
+	function formatDate(daysFromNow = 0) {
+		let output = ''
+		var date = new Date();
+		date.setDate(date.getDate() + daysFromNow);
+		output += date.toLocaleString('en-US', { weekday: 'long' }).toUpperCase()
+		output += ' ' + date.getDate()
+		return output
+	}
+
+	// function that uses OpenWeatherMap's geocoding API to find locations
+	function search() {
+		// takes the value from the search input
+		let searchInput = document.querySelector("#search-input").value;
+		if (searchInput) {
+			// creates the API call with the value from the search input as a query
+			let apiCall = `https://api.openweathermap.org/geo/1.0/direct?q=${searchInput},,US&limit=5&appid=${apiKey}`;
+			// calls the API
+			fetch(apiCall)
+				.then((response) =>
+					// after recieving a response, take the response from the server and convert it to JSON 
+					response.json()
+				)
+				.then((data) => {
+					// after recieving the converted JSON data, pass the JSON to the renderSearchResults() function
+					renderSearchResults(data)
+				});
 		}
+	}
 
-		// function that uses OpenWeatherMap's geocoding API to find locations
-		function search() {
-			// takes the value from the search input
-			let searchInput = document.querySelector("#search-input").value;
-			if (searchInput) {
-				// creates the API call with the value from the search input as a query
-				let apiCall = `https://api.openweathermap.org/geo/1.0/direct?q=${searchInput},,US&limit=5&appid=${apiKey}`;
-				// calls the API
-				fetch(apiCall)
-					.then((response) => 
-						// after recieving a response, take the response from the server and convert it to JSON 
-						response.json()
-					)
-					.then((data) => {
-						// after recieving the converted JSON data, pass the JSON to the renderSearchResults() function
-						renderSearchResults(data)
-					});
-			}
-		}
+	// function that renders the search results as a unordered list
+	function renderSearchResults(searchResults) {
+		// selects the unordered list element search-results-list
+		const ul = document.querySelector('#search-results-list')
+		// shows the unordered list if was hidden previously
+		ul.classList.remove("hidden");
+		// clears out any list items from the previous search
+		ul.innerHTML = ''
+		// loops through each search result and creates and attaches a list item for the unordered list
+		searchResults.forEach((searchResult, index) => {
+			// creates a new unordered list element
+			const li = document.createElement('li')
+			// sets the list item's class as search-result
+			li.setAttribute('class', 'search-result')
+			// sets the text inside the list item as the name and state of the city 
+			const fullName = searchResult.name + ', ' + searchResult.state
+			li.innerHTML = fullName
+			// if the list item of a city is clicked, call the selectCity() function
+			li.addEventListener('click', () => selectCity(fullName, searchResult.name, searchResult.state, searchResult.lat, searchResult.lon))
+			// attaches the list item elements to search-results-list
+			ul.appendChild(li)
+		})
+	}
 
-		// function that renders the search results as a unordered list
-		function renderSearchResults(searchResults) {
-				// selects the unordered list element search-results-list
-				const ul = document.querySelector('#search-results-list')
-				// shows the unordered list if was hidden previously
-				ul.classList.remove("hidden");
-				// clears out any list items from the previous search
-				ul.innerHTML = ''
-				// loops through each search result and creates and attaches a list item for the unordered list
-				searchResults.forEach((searchResult, index) => {
-					// creates a new unordered list element
-					const li = document.createElement('li')
-					// sets the list item's class as search-result
-					li.setAttribute('class', 'search-result')
-					// sets the text inside the list item as the name and state of the city 
-					const fullName = searchResult.name + ', ' + searchResult.state
-					li.innerHTML = fullName
-					// if the list item of a city is clicked, call the selectCity() function
-					li.addEventListener('click', () => selectCity(fullName, searchResult.name, searchResult.state, searchResult.lat, searchResult.lon))
-					// attaches the list item elements to search-results-list
-					ul.appendChild(li)
-			})	
+	// function that is called whenever a city has been selected
+	async function selectCity(fullName, name, state, lat, lon) {
+		// hides the search-results-list since it is not needed right now
+		document.querySelector('#search-results-list').className = 'hidden'
+		// sets the global city variable
+		document.querySelector("#search-input").value = ''
+		city = {
+			fullName: fullName,
+			name: name,
+			state: state,
+			lat: lat,
+			lon: lon
 		}
+		//printing the city object to the console
+		console.log(city);
+		// BEGIN CODING HERE
+		let apiCall = `http://api.openweathermap.org/data/2.5/weather?lat=${city.lat}&lon=${city.lon}&appid=${apiKey}`;
+		const tempResponse = await fetch(apiCall);
+		const tempData = await tempResponse.json();
+		console.log(tempData);
+		temp = tempData.main.temp;
 
-		// function that is called whenever a city has been selected
-		function selectCity(fullName, name, state, lat, lon) {
-			// hides the search-results-list since it is not needed right now
-			document.querySelector('#search-results-list').className = 'hidden'
-			// sets the global city variable
-			document.querySelector("#search-input").value = ''
-			city = {
-				fullName: fullName,
-				name: name,
-				state: state,
-				lat: lat,
-				lon: lon
-			}
-			//printing the city object to the console
-			console.log(city);
-            // BEGIN CODING HERE
+		// Fetch and render current weather
+		renderCurrentWeather(tempData);
+		// Fetch and render 5-day forecast
+		const forecastApiCall = `http://api.openweathermap.org/data/2.5/forecast?lat=${city.lat}&lon=${city.lon}&appid=${apiKey}`;
+		const forecastResponse = await fetch(forecastApiCall);
+		const forecastData = await forecastResponse.json();
+		renderForecast(forecastData);
+		const aqiApiCall = `http://api.openweathermap.org/data/2.5/air_pollution?lat=${city.lat}&lon=${city.lon}&appid=${apiKey}`;
+		const aqiResponse = await fetch(aqiApiCall);
+		const aqiData = await aqiResponse.json();
+		renderAQI(aqiData);
+
+	}
+
+	async function renderCurrentWeather(data) {
+		const container = document.querySelector("#weather-container");
+		const tempInFahrenheit = ((data.main.temp - 273.15) * 9 / 5 + 32).toFixed(2);
+		const iconSrc = `icons/${data.weather[0].icon}.svg`;
+		container.innerHTML = `
+				<h2>${city.fullName}</h2>
+				<img src="${iconSrc}" alt="${data.weather[0].description}">
+				<p>Temperature: ${tempInFahrenheit}°F</p>
+				<p>Weather: ${data.weather[0].description}</p>
+			`;
+	}
+
+	async function renderForecast(data) {
+		const container = document.querySelector("#weather-container");
+		// container.innerHTML = `<h1>${city.fullName}</h1><h2>5-Day Forecast:</h2>`;
+		const forecastDiv = document.createElement('div');
+		forecastDiv.innerHTML = `<h1>${city.fullName}</h1><h2>5-Day Forecast:</h2>`;
+
+		for (let i = 0; i < data.list.length; i += 8) { // Taking one entry for each day (as there are 8 entries/day) 
+			const dayData = data.list[i];
+			const tempInFahrenheit = ((dayData.main.temp - 273.15) * 9 / 5 + 32).toFixed(2);
+			const iconSrc = `icons/${dayData.weather[0].icon}.svg`;
+
+
+			const dayDiv = document.createElement('div');
+			dayDiv.innerHTML = `
+				<strong>${formatDate(i / 8)}</strong>
+				<img src="${iconSrc}" alt="${dayData.weather[0].description}">
+				<p>${tempInFahrenheit}°F</p>
+			`;
+
+
+			container.appendChild(dayDiv);
 		}
-	</script>
+	}
+
+
+	async function renderAQI(data) {
+		const container = document.querySelector("#weather-container");
+		const aqiDiv = document.createElement('div');
+		aqiDiv.innerHTML = `
+			<h3>Air Quality Index:</h3>
+			<p>AQI: ${data.list[0].main.aqi}</p>
+			<p>PM2.5: ${data.list[0].components.pm2_5} µg/m³</p>
+			<p>PM10: ${data.list[0].components.pm10} µg/m³</p>
+		`;
+		container.appendChild(aqiDiv);
+	}
+</script>
+
 </html>
